@@ -1,0 +1,5 @@
+{
+    "document_data": "{\"test\":\"data\"}",
+    "document_type": "json",
+    "instructions": "Analyze this test data and provide a summary"
+}
