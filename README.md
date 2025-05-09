@@ -1,197 +1,67 @@
-# LLM Utilities API
+# AWS Lambda Python Demo
 
-This repository contains serverless LLM utilities deployed on AWS Lambda, accessible through an API. The utilities process various document types (images, PDFs, JSON) and return structured JSON responses using LLM capabilities.
+This repository contains a **demo AWS Lambda function written in Python** and a streamlined workflow for deploying it as a Lambda function on AWS using Docker and Terraform.
 
-## Features
+## What This Repo Does
 
-- Document processor Lambda function that handles images, PDFs, and JSON
-- Integration with LLMs via Instructor and LiteLLM
-- Secure credential management
-- Configurable LLM providers
-- API Gateway integration
-- Container-based deployment for reliable dependency management
+- **Demo Lambda Function:**
+  - A Python-based Lambda function (using FastAPI and Mangum) that can be used as a template for serverless APIs or LLM-powered utilities.
+  - Example endpoint: `/process` for document or data processing.
+
+- **Deployment Workflow:**
+  - **Dockerfile**: Containerizes the Lambda function for consistent, dependency-free deployment.
+  - **Terraform**: Infrastructure as code to provision the Lambda function, API Gateway, and required AWS resources.
+  - **Bash Deployment Script**: One command to build, push, and deploy the Lambda, and to set up required secrets in AWS Secrets Manager.
+
+- **Local Testing:**
+  - Includes a `lambda_entry.py` script to simulate Lambda invocation locally for rapid development and debugging.
+
+## How to Use
+
+1. **Prepare your environment:**
+   - Install [Docker](https://www.docker.com/), [Terraform](https://www.terraform.io/), and [AWS CLI](https://aws.amazon.com/cli/).
+   - Set up your AWS credentials/profile.
+
+2. **Set your API keys as environment variables:**
+   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `COHERE_API_KEY`, `GEMINI_API_KEY` (as needed)
+
+3. **Deploy with one command:**
+   ```bash
+   ./scripts/deploy_and_secrets.sh <aws_profile> <aws_region>
+   ```
+   - This will build and push the Docker image, set up secrets, and deploy the Lambda/API Gateway using Terraform.
+
+4. **Get your API endpoint:**
+   - After deployment, use the output or your AWS Console to find the API Gateway endpoint.
+
+5. **Test locally:**
+   - Run `python lambda_entry.py` to simulate Lambda invocation with a sample event.
+
+6. **Test remotely:**
+   - Use `curl` or Postman to send a POST request to your API endpoint:
+     ```bash
+     curl -X POST '<your-api-endpoint>/process' \
+       -H 'Content-Type: application/json' \
+       -d '{"document_data": "{\"test\": \"data\"}", "document_type": "json", "instructions": "Summarize the test data"}'
+     ```
 
 ## Project Structure
 
 ```
 .
-├── src/
-│   ├── lambda_functions/        # AWS Lambda function implementations
-│   │   └── document_processor/  # Document processing function
-│   ├── utils/                   # Shared utility modules
-│   └── config/                  # Configuration modules
-├── tests/                       # Test suite
-├── docs/                        # Documentation
-├── scripts/                     # Deployment and utility scripts
-├── terraform/                   # Terraform deployment configuration
-├── Dockerfile                   # Container definition for Lambda
-├── .env.example                 # Example environment variables
-├── requirements.txt             # Python dependencies
-└── README.md                    # This README file
+├── src/                  # Lambda function source code
+├── scripts/              # Deployment and utility scripts
+├── terraform/            # Terraform IaC for AWS resources
+├── Dockerfile            # Container definition for Lambda
+├── requirements.txt      # Python dependencies
+├── lambda_entry.py       # Local Lambda test harness
+└── README.md             # This file
 ```
 
-## Setup
+## Notes
+- **No secrets or sensitive data should be committed to this repo.**
+- The repo is intended as a template/demo for serverless Python Lambda deployments.
+- Unnecessary files and scripts have been removed for clarity and security.
 
-1. Create a Python virtual environment:
-```bash
-uv venv
-uv venv activate
-```
-
-2. Install dependencies:
-```bash
-uv add -r requirements.txt
-```
-
-3. Create a `.env` file based on `.env.example` with your API keys.
-
-## Development
-
-To run tests:
-```bash
-pytest
-```
-
-To run the API locally:
-```bash
-./scripts/run_local_server.ps1
-```
-
-## Deployment
-
-### Prerequisites
-
-- AWS account with appropriate permissions
-- AWS CLI configured with credentials
-- Docker Desktop installed and running
-- Terraform installed (for infrastructure deployment)
-
-### Deployment Steps
-
-Use the consolidated deployment script to handle the entire deployment process:
-
-```powershell
-# Full deployment (ECR repo, Docker image, Terraform)
-./scripts/deploy.ps1 -AwsProfile your-profile-name
-
-# Skip certain steps if needed
-./scripts/deploy.ps1 -AwsProfile your-profile-name -SkipEcr -SkipImageBuild
-```
-
-After deployment, set your API keys in AWS Secrets Manager:
-
-```powershell
-aws secretsmanager put-secret-value --profile your-profile-name --secret-id llm-utilities/api-keys --secret-string '{"OPENAI_API_KEY":"your-key","ANTHROPIC_API_KEY":"your-key","COHERE_API_KEY":"your-key","GEMINI_API_KEY":"your-key"}'
-```
-
-### Lambda Troubleshooting Tools
-
-When troubleshooting Lambda function issues, use the environment analyzer:
-
-```powershell
-./scripts/analyze_lambda_env.ps1 -AwsProfile your-profile-name -FunctionName document-processor
-```
-
-This script will analyze the Lambda environment and provide detailed information about imports, Python versions, and installed packages.
-
-### Using the Document Processing API
-
-The deployed API provides document processing capabilities via a simple REST interface.
-
-### Getting the API Endpoint
-
-After deployment, you can get the API endpoint using the provided script:
-
-```powershell
-./scripts/get_api_endpoint.ps1 -AwsProfile your-profile-name
-```
-
-This will display the API endpoint URL and example commands for testing.
-
-### Testing the Lambda Function
-
-You can test the Lambda function directly using the consolidated test script:
-
-```powershell
-# Test with a simple direct invocation (easiest method)
-./scripts/test_lambda.ps1 -AwsProfile your-profile-name -EventType direct
-
-# Test with an API Gateway event format
-./scripts/test_lambda.ps1 -AwsProfile your-profile-name -EventType api-gateway
-
-# Test with a custom event file
-./scripts/test_lambda.ps1 -AwsProfile your-profile-name -CustomEventFile path/to/your/event.json
-```
-
-These tests use the event files in the `examples` directory.
-
-### Testing with Example Scripts
-
-The repository includes example scripts for testing the API with different document types:
-
-```powershell
-# Get the API endpoint
-$apiEndpoint = ./scripts/get_api_endpoint.ps1 -AwsProfile your-profile-name
-
-# Test JSON document processing
-python examples/test_document_processor.py --api-url $apiEndpoint --test-type json
-
-# Test image document processing (requires sample_receipt.jpg in examples directory)
-python examples/test_document_processor.py --api-url $apiEndpoint --test-type image
-
-# Test PDF document processing (requires sample_invoice.pdf in examples directory)
-python examples/test_document_processor.py --api-url $apiEndpoint --test-type pdf
-```
-
-### API Request Format
-
-The API accepts POST requests to the `/process` endpoint with the following JSON payload:
-
-```json
-{
-  "document_data": "string",  // Base64-encoded document data or JSON string
-  "document_type": "json|image|pdf",  // Optional, will auto-detect if not provided
-  "llm_provider": "openai|anthropic|cohere|gemini",  // Optional, uses default if not specified
-  "instructions": "string"  // Processing instructions for the LLM
-}
-```
-
-### API Response Format
-
-The API returns a JSON response with the following structure:
-
-```json
-{
-  "request_id": "string",
-  "success": true,
-  "result": {
-    "summary": {
-      "title": "string",
-      "content": "string"
-    },
-    "text_annotations": [
-      {
-        "type": "string",
-        "content": "string"
-      }
-    ],
-    "entity_annotations": [
-      {
-        "entity_type": "string",
-        "name": "string",
-        "value": "string"
-      }
-    ]
-  }
-}
-```
-
-In case of error:
-
-```json
-{
-  "request_id": "string",
-  "success": false,
-  "error_message": "string"
-}
-``` 
+## License
+MIT 
